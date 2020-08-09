@@ -37,8 +37,8 @@ class ClientHandler implements Runnable, Observer {
     String input;
     try {
       while ((input = fromClient.readLine()) != null) {
-        System.out.println("From client: " + input);
-        server.processRequest(input);
+        String[] in = input.split(" ");
+        this.server.processRequest(in);
       }
     } catch (IOException e) {
       e.printStackTrace();

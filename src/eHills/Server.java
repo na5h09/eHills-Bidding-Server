@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 
-import com.google.gson.Gson;
+//import com.google.gson.Gson;
 
 class Server extends Observable {
 	
@@ -17,9 +17,7 @@ class Server extends Observable {
 	private static List<Item> auctionList;
 
   public static void main(String[] args) {
-    try {
-    	new Server().runServer();
-    } catch (Exception e) {e.printStackTrace();}
+    new Server().runServer();
   }
 
   private Server() {
@@ -52,32 +50,29 @@ class Server extends Observable {
     }
   }
 
-  protected void processRequest(String input) {
-    String output = "Error";
-    Gson gson = new Gson();
-    Message1 message = gson.fromJson(input, Message1.class);
-    try {
-      String temp = "";
-      switch (message.type) {
-        case "upper":
-          temp = message.input.toUpperCase();
-          break;
-        case "lower":
-          temp = message.input.toLowerCase();
-          break;
-        case "strip":
-          temp = message.input.replace(" ", "");
-          break;
-      }
-      output = "";
-      for (int i = 0; i < message.number; i++) {
-        output += temp;
-        output += " ";
-      }
-      this.setChanged();
-      this.notifyObservers(output);
+  protected void processRequest(String[] input) {
+    String output = "ERROR";
+	try {
+		if(input[0].equals("CREATE")) {
+			if(!users.contains(input[1])) {
+				users.add(input[1]);
+				output = "LOGIN";
+			} else {
+				System.out.println("User already exists");
+			}
+		} else if(input[0].equals("LOGIN")) {
+			if(users.contains(input[1])) {
+				output = "LOGIN";
+			} else {
+				System.out.println("User does not exist");
+			}
+		} else if(input[0].equals("BID")) {
+			
+		}
+		this.setChanged();
+		this.notifyObservers(output);
     } catch (Exception e) {
-      e.printStackTrace();
+    	e.printStackTrace();
     }
   }
   
