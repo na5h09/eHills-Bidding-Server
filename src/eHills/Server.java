@@ -3,6 +3,8 @@ package eHills;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -69,6 +71,10 @@ class Server extends Observable {
     while (true) {
       Socket clientSocket = serverSock.accept();
       System.out.println("Connecting to... " + clientSocket);
+      
+      OutputStream os = clientSocket.getOutputStream();
+      ObjectOutputStream oos = new ObjectOutputStream(os);
+      oos.writeObject(auctionList);
 
       ClientHandler handler = new ClientHandler(this, clientSocket);
       this.addObserver(handler);

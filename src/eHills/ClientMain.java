@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 //import com.google.gson.Gson;
@@ -39,6 +41,7 @@ public class ClientMain extends Application{
   private PrintWriter writer;
   private Scanner consoleInput = new Scanner(System.in);
   private Stage curr = null;
+  private ArrayList<Item> database;
   private Map<String, Integer> items = new HashMap<String, Integer>();
 
   public static void main(String[] args) {
@@ -187,6 +190,10 @@ public class ClientMain extends Application{
     reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     writer = new PrintWriter(socket.getOutputStream());
 
+    InputStream is = socket.getInputStream();
+    ObjectInputStream ois = new ObjectInputStream(is);
+    database = (ArrayList<Item>) ois.readObject();
+    
     Thread aThread = new Thread(new Auctioner());
 
     aThread.start();
