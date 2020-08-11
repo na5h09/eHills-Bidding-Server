@@ -1,0 +1,29 @@
+{
+	"items": [
+		{
+			"name": "Television",
+			"price": 500.00,
+			"image": null
+		},
+		{
+			"name": "Blender",
+			"price": 60.00,
+			"image": null
+		},
+		{
+			"name": "Laptop",
+			"price": 260.00,
+			"image": null
+		},
+		{
+			"name": "Smartphone",
+			"price": 200.00,
+			"image": null
+		},
+		{
+			"name": "Desk Chair",
+			"price": 80.00,
+			"image": null
+		}
+	]
+}

@@ -1,5 +1,8 @@
 package eHills;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -8,11 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 
-//import com.google.gson.Gson;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 class Server extends Observable {
 	
-	private static Map<String, ClientHandler> currUsers;
+	private static List<String> currUsers;
 	private static List<String> users;
 	private static List<Item> auctionList;
 
@@ -21,9 +27,31 @@ class Server extends Observable {
   }
 
   private Server() {
-	  currUsers = new HashMap<String, ClientHandler>();
+	  currUsers = new ArrayList<String>();
 	  users = new ArrayList<String>();
-	  auctionList = new ArrayList<Item>(); //change to JSON reader output
+	  auctionList = new ArrayList<Item>();
+	  
+	  JSONParser parser = new JSONParser();
+	  try {
+		JSONObject jobj = (JSONObject) parser.parse(new FileReader("Product.json"));
+		
+		JSONArray itemsList = (JSONArray) jobj.get("items");
+		for(int i = 0; i < itemsList.size(); i++) {
+			JSONObject product = (JSONObject) itemsList.get(i);
+			String name = (String) product.get("name");
+			Double price = (Double) product.get("price");
+			auctionList.add(new Item(name, price));
+		}
+		
+		int i = 0;
+		
+	} catch (FileNotFoundException e) {
+		e.printStackTrace();
+	} catch (IOException e) {
+		e.printStackTrace();
+	} catch (ParseException e) {
+		e.printStackTrace();
+	}
   }
   
   private void runServer() {
@@ -56,18 +84,23 @@ class Server extends Observable {
 		if(input[0].equals("CREATE")) {
 			if(!users.contains(input[1])) {
 				users.add(input[1]);
-				output = "LOGIN";
+				currUsers.add(input[1]);
+				output = "LOGIN" + input[1];
 			} else {
 				System.out.println("User already exists");
 			}
 		} else if(input[0].equals("LOGIN")) {
-			if(users.contains(input[1])) {
-				output = "LOGIN";
+			if(users.contains(input[1]) && !currUsers.contains(input[1])) {
+				currUsers.add(input[1]);
+				output = "LOGIN" + input[1];
 			} else {
 				System.out.println("User does not exist");
 			}
 		} else if(input[0].equals("BID")) {
 			
+		} else if(input[0].equals("LOGOUT")) {
+			currUsers.remove(input[1]);
+			output = "LOGOUT";
 		}
 		this.setChanged();
 		this.notifyObservers(output);
@@ -78,11 +111,11 @@ class Server extends Observable {
   
   protected class Item {
 	  public String product;
-	  public Integer maxPrice;
+	  public Double maxPrice;
 	  public Integer highestBid;
 //	  public Image pic;
 	  
-	  public Item(String product, Integer price) {
+	  public Item(String product, Double price) {
 		  this.product = product;
 		  this.maxPrice = price;
 		  this.highestBid = 0;

@@ -34,6 +34,7 @@ import javafx.stage.Stage;
 public class ClientMain extends Application{
 
   private static String host = "127.0.0.1";
+  private static String userName;
   private BufferedReader reader;
   private PrintWriter writer;
   private Scanner consoleInput = new Scanner(System.in);
@@ -76,6 +77,7 @@ public class ClientMain extends Application{
 			  String currName = user.getText();
 			  
 			  if(!currName.contentEquals("")) {
+				  userName = currName;
 				  writer.println("LOGIN " + currName);
 				  writer.flush();
 				  
@@ -90,6 +92,7 @@ public class ClientMain extends Application{
 			  String newName = user.getText();
 			  
 			  if(!newName.contentEquals("")) {
+				  userName = newName;
 				  writer.println("CREATE " + newName);
 				  writer.flush();
 				  
@@ -152,9 +155,27 @@ public class ClientMain extends Application{
 		  g.getChildren().addAll(name, currPrice, value, bid);
 		  listing.getChildren().add(g);
 	  }
-	  
+	  //add everything to each other for the auction tab
+	  sp.setContent(listing);
+	  auc.setContent(sp);
+	  //Create History Tab
 	  Tab hist = new Tab("Bid History");
-	  Scene scene = new Scene(tb, 900, 1000);
+	  
+	  tb.getTabs().add(auc);
+	  tb.getTabs().add(hist);
+	  //Create Logout Button
+	  VBox exit = new VBox();
+	  Button logout = new Button("Logout");
+	  logout.setOnAction(new EventHandler<ActionEvent>() {
+		  @Override
+		  public void handle(ActionEvent event) {
+			  writer.print("LOGOUT " + userName);
+			  writer.flush();
+		  }
+	  });
+	  bp.setCenter(tb);
+	  
+	  Scene scene = new Scene(bp, 900, 1000);
 	  curr.setScene(scene);
 	  curr.show();
   }
@@ -206,11 +227,35 @@ public class ClientMain extends Application{
 //						  @Override
 //						  pub
 //					  });
+				  } else if(todo[0].equals("LOGOUT")) {
+					  Platform.runLater(new Runnable() {
+						  @Override
+						  public void run() {
+							  login();
+						  }
+					  });
 				  }
 			  }
 		  } catch (Exception e) {
 			  
 		  }
+	  }
+  }
+  
+  protected class Item {
+	  public String product;
+	  public Double maxPrice;
+	  public Integer highestBid;
+//	  public Image pic;
+	  
+	  public Item(String product, Double price) {
+		  this.product = product;
+		  this.maxPrice = price;
+		  this.highestBid = 0;
+	  }
+	  
+	  public void updateBid(Integer newBid) {
+		  this.highestBid = newBid;
 	  }
   }
 
