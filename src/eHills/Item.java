@@ -8,11 +8,12 @@ class Item implements Serializable {
 	  public Double highestBid;
 	  public String highestBidder;
 	  public Boolean open;
-//	  public Image pic;
+	  public String pic;
 	  
-	  public Item(String product, Double price) {
+	  public Item(String product, Double price, String image) {
 		  this.product = product;
 		  this.maxPrice = price;
+		  this.pic = image;
 		  this.highestBid = 5.00;
 		  this.open = true;
 	  }

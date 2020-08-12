@@ -3,27 +3,27 @@
 		{
 			"name": "Television",
 			"price": 500.00,
-			"image": null
+			"image": "https://www.ebuyer.com/blog/wp-content/uploads/2014/03/plasma-1.jpg"
 		},
 		{
 			"name": "Blender",
 			"price": 60.00,
-			"image": null
+			"image": "https://media.wired.com/photos/5d6978352098d60008804da9/1:1/w_1302,h_1302,c_limit/Breville-Super-Blender-SOURCE-Breville-FA.jpg"
 		},
 		{
 			"name": "Laptop",
 			"price": 260.00,
-			"image": null
+			"image": "https://zdnet1.cbsistatic.com/hub/i/r/2020/03/19/4d0e4e03-c980-43db-aa0f-2572aefcf89f/resize/1200x900/4a4509da96fc6d87280dc73238588f3e/surface-laptop-3-13-5-header.jpg"
 		},
 		{
 			"name": "Smartphone",
 			"price": 200.00,
-			"image": null
+			"image": "https://static.bhphoto.com/images/images2500x2500/1571097351_1507474.jpg"
 		},
 		{
 			"name": "DeskChair",
 			"price": 80.00,
-			"image": null
+			"image": "https://secure.img1-fg.wfcdn.com/im/04101391/resize-h600-w600%5Ecompr-r85/4148/4148964/Desk+Chairs.jpg"
 		}
 	]
 }

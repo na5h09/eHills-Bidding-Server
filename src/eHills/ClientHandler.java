@@ -58,14 +58,14 @@ class ClientHandler implements Runnable, Observer {
 
         if(!response.equals("")) {
         	this.sendToClient(response);
-        	try {
-				Thread.sleep(500);
+        	//try {
+				//Thread.sleep(500);
 				if(response.equals("LOGIN")) {
 	        		this.sendObject(this.server.getUserHist(in[1]));
 	        	} 
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}       	
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}       	
         }
       }
     } catch (IOException e) {

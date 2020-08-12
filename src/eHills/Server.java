@@ -47,7 +47,8 @@ class Server extends Observable implements Serializable {
 			JSONObject product = (JSONObject) itemsList.get(i);
 			String name = (String) product.get("name");
 			Double price = (Double) product.get("price");
-			auctionList.add(new Item(name, price));
+			String image = (String) product.get("image");
+			auctionList.add(new Item(name, price, image));
 		}
 		
 	} catch (FileNotFoundException e) {
@@ -124,12 +125,12 @@ class Server extends Observable implements Serializable {
 						output = "PURCHASE " + input[1] + " " + input[2] + " " + input[3];
 						String update = input[1] + " WON by " + input[2] + " for " + input[3];
 						users.get(input[2]).add(update);
-						bidHist.add(input[1] + " WON by " + input[2] + " for " + input[3]);
+						bidHist.add(update);
 					} else {
 						output = "BID " + input[1] + " " + input[2] + " " + input[3];
 						String update = input[2] + " BIDDED " + input[3] + " for " + input[1];
 						users.get(input[2]).add(update);
-						bidHist.add(input[2] + " BIDDED " + input[3] + " for " + input[1]);
+						bidHist.add(update);
 					}
 				} else {
 					output = "ERROR " + 2;

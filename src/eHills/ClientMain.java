@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+
+import javax.imageio.ImageIO;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,11 +18,13 @@ import java.io.Serializable;
 import java.net.Socket;
 //import com.google.gson.Gson;
 //import com.google.gson.GsonBuilder;
+import java.net.URL;
 
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -28,11 +33,17 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -75,6 +86,7 @@ public class ClientMain extends Application{
 			  try {
 				reader.close();
 				writer.close();
+				ois.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -139,20 +151,32 @@ public class ClientMain extends Application{
 	  //Creating tabs
 	  //auctions tab (listings)
 	  Tab auc = new Tab("Auctions");
+	  auc.setClosable(false);
 	  //scroll pane for the listings under the 
 	  ScrollPane sp = new ScrollPane();
+	  sp.setPadding(new Insets(10, 30, 10, 30));
 	  sp.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+	  BackgroundFill bf1 = new BackgroundFill(Color.SKYBLUE, CornerRadii.EMPTY, Insets.EMPTY);
+  	  Background back1 = new Background(bf1);
+  	  sp.setBackground(back1);
 	  VBox listing = new VBox();
+	  listing.setMaxWidth(sp.getMaxWidth());
+	  listing.setBackground(back1);
 	  listing.setAlignment(Pos.TOP_CENTER);
 	  listing.setSpacing(20);
 	  listing.setMaxWidth(900);
 	  
 	  for(Item i: database) {
 		  GridPane g = new GridPane();
+		  g.setStyle("-fx-border-color: black");
+		  g.setPadding(new Insets(10, 10, 10, 10));
 		  g.setVgap(10);
 		  g.setHgap(10);
+		  Image image = new Image(i.pic, 200, 0, true, false);
+		  ImageView iv = new ImageView(image);
+		  GridPane.setConstraints(iv, 0, 0);
 		  Label name  = new Label(i.product);
-		  GridPane.setConstraints(name, 0, 0);
+		  GridPane.setConstraints(name, 0, 1);
 		  Label currPrice;
 		  if(!i.open) {
 			  currPrice  = new Label("Bid Closed");
@@ -160,11 +184,11 @@ public class ClientMain extends Application{
 			  currPrice  = new Label("Bid Value at: " + i.highestBid);
 		  }
 		  itemState.put(i.product, currPrice);
-		  GridPane.setConstraints(currPrice, 1, 0);
+		  GridPane.setConstraints(currPrice, 1, 1);
 		  TextField value = new TextField();
-		  GridPane.setConstraints(value, 0, 1);
+		  GridPane.setConstraints(value, 0, 2);
 		  Button bid = new Button("Make Bid");
-		  GridPane.setConstraints(bid, 1, 1);
+		  GridPane.setConstraints(bid, 1, 2);
 		  
 		  bid.setOnAction(new EventHandler<ActionEvent>() {
 			  @Override
@@ -181,7 +205,7 @@ public class ClientMain extends Application{
 			  }
 		  });
 		  
-		  g.getChildren().addAll(name, currPrice, value, bid);
+		  g.getChildren().addAll(iv, name, currPrice, value, bid);
 		  listing.getChildren().add(g);
 	  }
 	  //add everything to each other for the auction tab
@@ -189,10 +213,15 @@ public class ClientMain extends Application{
 	  auc.setContent(sp);
 	  //Create History Tab
 	  Tab hist = new Tab("Personal History");
+	  hist.setClosable(false);
 	  if(userHistory != null) {
 		  pHistory.getChildren().addAll(userHistory);
 	  }
-	  hist.setContent(pHistory);
+	  pHistory.setPadding(new Insets(50, 50, 50, 50));
+	  ScrollPane sp_pHist = new ScrollPane();
+	  sp_pHist.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+	  sp_pHist.setContent(pHistory);
+	  hist.setContent(sp_pHist);
 	  
 	  tb.getTabs().add(auc);
 	  tb.getTabs().add(hist);
@@ -210,9 +239,30 @@ public class ClientMain extends Application{
 	  });
 	  exit.getChildren().add(logout);
 	  
+	  BackgroundFill bf = new BackgroundFill(Color.DARKKHAKI, CornerRadii.EMPTY, Insets.EMPTY);
+  	  Background back = new Background(bf);
+  	  exit.setBackground(back);
+  	  history.setBackground(back);
+  	  exit.setStyle("-fx-border-color: black");
+  	  history.setStyle("-fx-border-color: black");
+  	  tb.setStyle("-fx-border-color: black");
+  	  
+  	  exit.setPadding(new Insets(10, 10, 10, 10));
+  	  history.setPadding(new Insets(10, 10, 10, 10));
+  	  
+  	  ScrollPane sp_Hist = new ScrollPane();
+	  sp_Hist.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+	  sp_Hist.setContent(history);
+	  
+	  Image logo = new Image(getClass().getResourceAsStream("/pics/logo.png"));
+	  ImageView logoIV = new ImageView(logo);
+	  
 	  bp.setCenter(tb);
-	  bp.setTop(exit);
-	  bp.setRight(history);
+	  bp.setBottom(exit);
+	  bp.setRight(sp_Hist);
+	  bp.setTop(logoIV);
+	  
+	  bp.setBackground(back1);
 	  
 	  Scene scene = new Scene(bp, 900, 1000);
 	  curr.setScene(scene);
@@ -240,6 +290,7 @@ public class ClientMain extends Application{
   
   private void updatePHist(String personal) {
 	  Label pHist = new Label(personal);
+	  pHist.setFont(Font.font("Courier New", 24));
 	  pHistory.getChildren().add(0, pHist);
   }
   
@@ -301,16 +352,6 @@ public class ClientMain extends Application{
     System.out.println("Connected");
     login();
   }
-
-  protected void processRequest(String input) {
-    return;
-  }
-
-  protected void sendToServer(String string) {
-    System.out.println("Sending to server: " + string);
-    writer.println(string);
-    writer.flush();
-  }
   
   class Auctioner implements Runnable {
 	  
@@ -324,10 +365,10 @@ public class ClientMain extends Application{
 				  
 				  if(todo[0].equals("LOGIN")) {
 					  try {
-							ArrayList<String> pers = (ArrayList<String>) ois.readObject();
-							for(String s: pers) {
-								userHistory.add(new Label(s));
-							}
+						  ArrayList<String> pers = (ArrayList<String>) ois.readObject();
+						  for(String s: pers) {
+							  userHistory.add(new Label(s));
+						  }
 						} catch (ClassNotFoundException e) {
 							e.printStackTrace();
 						} catch (IOException e) {
@@ -352,6 +393,8 @@ public class ClientMain extends Application{
 						  @Override
 						  public void run() {
 							  curr.close();
+							  userHistory.clear();
+							  pHistory.getChildren().clear();
 							  login();
 						  }
 					  });
