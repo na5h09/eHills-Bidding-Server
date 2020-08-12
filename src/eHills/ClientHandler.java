@@ -38,7 +38,14 @@ class ClientHandler implements Runnable, Observer {
     try {
       while ((input = fromClient.readLine()) != null) {
         String[] in = input.split(" ");
-        this.server.processRequest(in);
+        String response;
+        synchronized(this) {
+        	response = this.server.processRequest(in);
+        }
+
+        if(!response.equals("")) {
+        	this.sendToClient(response);
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();

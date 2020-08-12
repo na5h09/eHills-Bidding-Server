@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -18,10 +19,11 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-class Server extends Observable {
+class Server extends Observable implements Serializable {
 	
 	private static List<String> currUsers;
 	private static List<String> users;
+	private static List<String> bidHist;
 	private static List<Item> auctionList;
 
   public static void main(String[] args) {
@@ -31,6 +33,7 @@ class Server extends Observable {
   private Server() {
 	  currUsers = new ArrayList<String>();
 	  users = new ArrayList<String>();
+	  bidHist = new ArrayList<String>();
 	  auctionList = new ArrayList<Item>();
 	  
 	  JSONParser parser = new JSONParser();
@@ -44,8 +47,6 @@ class Server extends Observable {
 			Double price = (Double) product.get("price");
 			auctionList.add(new Item(name, price));
 		}
-		
-		int i = 0;
 		
 	} catch (FileNotFoundException e) {
 		e.printStackTrace();
@@ -71,65 +72,87 @@ class Server extends Observable {
     while (true) {
       Socket clientSocket = serverSock.accept();
       System.out.println("Connecting to... " + clientSocket);
+
+      ClientHandler handler = new ClientHandler(this, clientSocket);
+      this.addObserver(handler);
       
       OutputStream os = clientSocket.getOutputStream();
       ObjectOutputStream oos = new ObjectOutputStream(os);
       oos.writeObject(auctionList);
-
-      ClientHandler handler = new ClientHandler(this, clientSocket);
-      this.addObserver(handler);
+      oos.writeObject(bidHist);
+      
+//      oos.close();
+//      os.close();
 
       Thread t = new Thread(handler);
       t.start();
     }
   }
 
-  protected void processRequest(String[] input) {
+  protected String processRequest(String[] input) {
     String output = "ERROR";
 	try {
 		if(input[0].equals("CREATE")) {
 			if(!users.contains(input[1])) {
 				users.add(input[1]);
 				currUsers.add(input[1]);
-				output = "LOGIN" + input[1];
+				output = "LOGIN";
 			} else {
-				System.out.println("User already exists");
+				output = "ERROR " + 0;
 			}
+			
+			return output;
 		} else if(input[0].equals("LOGIN")) {
 			if(users.contains(input[1]) && !currUsers.contains(input[1])) {
 				currUsers.add(input[1]);
-				output = "LOGIN" + input[1];
+				output = "LOGIN";
 			} else {
-				System.out.println("User does not exist");
+				output = "ERROR " + 1;
 			}
-		} else if(input[0].equals("BID")) {
 			
+			return output;
+		} else if(input[0].equals("BID")) {
+			Integer index = productIndex(input[1]);
+			if(auctionList.get(index).open) {
+				Double bid = Double.parseDouble(input[3]);
+				if(auctionList.get(index).validBid(bid, input[2])) {
+					if(!auctionList.get(index).open) {
+						output = "PURCHASE " + input[1] + " " + input[2] + " " + input[3];
+						bidHist.add(input[1] + " WON by " + input[2] + " for " + input[3]);
+					} else {
+						output = "BID " + input[1] + " " + input[2] + " " + input[3];
+						bidHist.add(input[2] + " BIDDED " + input[3] + " for " + input[1]);
+					}
+				} else {
+					output = "ERROR " + 2;
+					return output;
+				}
+			} else {
+				output = "ERROR " + 3;
+				return output;
+			}
 		} else if(input[0].equals("LOGOUT")) {
 			currUsers.remove(input[1]);
 			output = "LOGOUT";
+			return output;
 		}
 		this.setChanged();
 		this.notifyObservers(output);
     } catch (Exception e) {
     	e.printStackTrace();
     }
+	
+	return "";
   }
   
-  protected class Item {
-	  public String product;
-	  public Double maxPrice;
-	  public Integer highestBid;
-//	  public Image pic;
-	  
-	  public Item(String product, Double price) {
-		  this.product = product;
-		  this.maxPrice = price;
-		  this.highestBid = 0;
+  private Integer productIndex(String name) {
+	  for(Item i: auctionList) {
+		  if(i.product.equals(name)) {
+			  return auctionList.indexOf(i);
+		  }
 	  }
 	  
-	  public void updateBid(Integer newBid) {
-		  this.highestBid = newBid;
-	  }
+	  return 0;
   }
-
+  
 }

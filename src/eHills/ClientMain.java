@@ -6,10 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.net.Socket;
 //import com.google.gson.Gson;
 //import com.google.gson.GsonBuilder;
@@ -32,6 +34,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class ClientMain extends Application{
 
@@ -41,8 +44,9 @@ public class ClientMain extends Application{
   private PrintWriter writer;
   private Scanner consoleInput = new Scanner(System.in);
   private Stage curr = null;
+  private VBox history = new VBox();
   private ArrayList<Item> database;
-  private Map<String, Integer> items = new HashMap<String, Integer>();
+  private Map<String, Label> itemState = new HashMap<String, Label>();
 
   public static void main(String[] args) {
     try {
@@ -61,8 +65,19 @@ public class ClientMain extends Application{
   }
   
   public void login() {
-	  //curr.close();
 	  curr = new Stage();
+	  curr.setOnCloseRequest(new EventHandler<WindowEvent>() {
+		  @Override
+		  public void handle(WindowEvent event) {
+			  try {
+				reader.close();
+				writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			  System.exit(0);
+		  }
+	  });
 	  curr.setTitle("LOGIN -> eHills");
 	  //Set the login portion for user atleast
 	  VBox loginScreen = new VBox();
@@ -113,7 +128,7 @@ public class ClientMain extends Application{
   public void auctionScreen() {
 	  curr.close();
 	  curr = new Stage();
-	  curr.setTitle("Auction Screen");
+	  curr.setTitle("Auction Screen:" + userName);
 	  //main pane
 	  BorderPane bp = new BorderPane();
 	  //tab pane for listings and history
@@ -125,16 +140,18 @@ public class ClientMain extends Application{
 	  ScrollPane sp = new ScrollPane();
 	  sp.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
 	  VBox listing = new VBox();
+	  listing.setAlignment(Pos.TOP_CENTER);
 	  listing.setSpacing(20);
 	  listing.setMaxWidth(900);
 	  
-	  for(Map.Entry<String, Integer> entry: items.entrySet()) {
+	  for(Item i: database) {
 		  GridPane g = new GridPane();
 		  g.setVgap(10);
 		  g.setHgap(10);
-		  Label name  = new Label(entry.getKey());
+		  Label name  = new Label(i.product);
 		  GridPane.setConstraints(name, 0, 0);
-		  Label currPrice  = new Label("Bid Value at: " + entry.getValue());
+		  Label currPrice  = new Label("Bid Value at: " + i.highestBid);
+		  itemState.put(i.product, currPrice);
 		  GridPane.setConstraints(currPrice, 1, 0);
 		  TextField value = new TextField();
 		  GridPane.setConstraints(value, 0, 1);
@@ -146,10 +163,11 @@ public class ClientMain extends Application{
 			  public void handle(ActionEvent event) {
 				  String input = value.getText();
 				  if(!input.equals("")) {
-					  writer.print("BID " + input);
+					  Double num = Double.parseDouble(input);
+					  writer.println("BID " + i.product + " " + userName + " " + num);
 					  writer.flush();
 				  } else {
-					  writer.println("BID " + (entry.getValue() + 5));
+					  writer.println("BID " + i.product + " " + userName + " " + (i.highestBid + 5.00));
 					  writer.flush();
 				  }
 			  }
@@ -162,25 +180,85 @@ public class ClientMain extends Application{
 	  sp.setContent(listing);
 	  auc.setContent(sp);
 	  //Create History Tab
-	  Tab hist = new Tab("Bid History");
+	  Tab hist = new Tab("Personal History");
+	  //hist.setContent();
 	  
 	  tb.getTabs().add(auc);
 	  tb.getTabs().add(hist);
 	  //Create Logout Button
 	  VBox exit = new VBox();
+	  exit.setAlignment(Pos.TOP_RIGHT);;
 	  Button logout = new Button("Logout");
 	  logout.setOnAction(new EventHandler<ActionEvent>() {
 		  @Override
 		  public void handle(ActionEvent event) {
-			  writer.print("LOGOUT " + userName);
+			  String name = userName;
+			  writer.println("LOGOUT " + name);
 			  writer.flush();
 		  }
 	  });
+	  exit.getChildren().add(logout);
+	  
 	  bp.setCenter(tb);
+	  bp.setTop(exit);
+	  bp.setRight(history);
 	  
 	  Scene scene = new Scene(bp, 900, 1000);
 	  curr.setScene(scene);
 	  curr.show();
+  }
+  
+  private void updateItemState(String itemName, String state) {
+	  if(!itemState.isEmpty()) {
+		  itemState.get(itemName).setText(state);
+	  }
+  }
+  
+  private void updateItem(String product, String bidder, Double bidValue) {
+	  for(Item i: database) {
+		  if(i.product.equals(product)) {
+			  i.validBid(bidValue, bidder);
+		  }
+	  }
+  }
+  
+  private void updateHistory(String latest) {
+	  Label recent = new Label(latest);
+	  history.getChildren().add(0, recent);
+  }
+  
+  public void alertPopUp(Integer error) {
+	  Stage alert = new Stage();
+	  alert.setTitle("Error");
+	  VBox alertMessage = new VBox();
+	  alertMessage.setAlignment(Pos.CENTER);
+	  Label mess = new Label();
+	  switch(error) {
+	  	case 0:
+	  		mess.setText("User already exists. Try Again.");
+	  		break;
+	  		
+	  	case 1:
+	  		mess.setText("User does not exist or User is already logged in. Try Again.");
+	  		break;
+	  		
+	  	case 2:
+	  		mess.setText("Invalid Bid. Try Again");
+	  		break;
+	  		
+	  	case 3:
+	  		mess.setText("Item Auction Closed. Try Another Item");
+	  		break;
+	  		
+	  	default:
+	  		break;
+	  }
+	  
+	  alertMessage.getChildren().add(mess);
+	  
+	  Scene scene = new Scene(alertMessage, 150, 80);
+	  alert.setScene(scene);
+	  alert.show();
   }
 
   private void setUpNetworking() throws Exception {
@@ -193,6 +271,13 @@ public class ClientMain extends Application{
     InputStream is = socket.getInputStream();
     ObjectInputStream ois = new ObjectInputStream(is);
     database = (ArrayList<Item>) ois.readObject();
+    ArrayList<String> bidhistory =(ArrayList<String>) ois.readObject();
+    for(String s: bidhistory) {
+    	updateHistory(s);
+    }
+    
+//    ois.close();
+//    is.close();
     
     Thread aThread = new Thread(new Auctioner());
 
@@ -212,7 +297,6 @@ public class ClientMain extends Application{
   }
   
   class Auctioner implements Runnable {
-	  public List<String> bidHistory = new ArrayList<String>();
 	  
 	  @Override
 	  public void run() {
@@ -230,15 +314,42 @@ public class ClientMain extends Application{
 						  }
 					  });
 				  } else if(todo[0].equals("ERROR")) {
-//					  Platform.runLater(new Runnable() {
-//						  @Override
-//						  pub
-//					  });
+					  Integer error = Integer.parseInt(todo[1]);
+					  Platform.runLater(new Runnable() {
+						  @Override
+						  public void run() {
+							  alertPopUp(error);
+						  }
+					  });
 				  } else if(todo[0].equals("LOGOUT")) {
 					  Platform.runLater(new Runnable() {
 						  @Override
 						  public void run() {
+							  curr.close();
 							  login();
+						  }
+					  });
+				  } else if(todo[0].equals("BID")) {
+					  String update = todo[2] + " BIDDED " + todo[3] + " for " + todo[1];
+					  String state = "Bid Value at: " + todo[3];
+					  Platform.runLater(new Runnable() {
+						  @Override
+						  public void run() {
+							  Double val = Double.parseDouble(todo[3]);
+							  updateItem(todo[1], todo[2], val);
+							  updateItemState(todo[1], state);
+							  updateHistory(update);
+						  }
+					  });
+				  } else if(todo[0].equals("PURCHASE")) {
+					  String update = todo[1] + " WON by " + todo[2] + " for " + todo[3];
+					  Platform.runLater(new Runnable() {
+						  @Override
+						  public void run() {
+							  Double val = Double.parseDouble(todo[3]);
+							  updateItem(todo[1], todo[2], val);
+							  updateItemState(todo[1], "Bid Closed");
+							  updateHistory(update);
 						  }
 					  });
 				  }
@@ -246,23 +357,6 @@ public class ClientMain extends Application{
 		  } catch (Exception e) {
 			  
 		  }
-	  }
-  }
-  
-  protected class Item {
-	  public String product;
-	  public Double maxPrice;
-	  public Integer highestBid;
-//	  public Image pic;
-	  
-	  public Item(String product, Double price) {
-		  this.product = product;
-		  this.maxPrice = price;
-		  this.highestBid = 0;
-	  }
-	  
-	  public void updateBid(Integer newBid) {
-		  this.highestBid = newBid;
 	  }
   }
 
