@@ -19,6 +19,8 @@ import java.net.Socket;
 //import com.google.gson.Gson;
 //import com.google.gson.GsonBuilder;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -40,6 +42,7 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -53,11 +56,13 @@ public class ClientMain extends Application{
   private static String userName;
   private BufferedReader reader;
   private PrintWriter writer;
+  private Socket socket;
   private Scanner consoleInput = new Scanner(System.in);
   private Stage curr = null;
   private VBox history = new VBox();
   private ArrayList<Item> database;
   private ObjectInputStream ois;
+  private String endOfAuction;
   private ArrayList<Label> userHistory = new ArrayList<Label>();
   private VBox pHistory = new VBox();
   private Map<String, Label> itemState = new HashMap<String, Label>();
@@ -84,12 +89,12 @@ public class ClientMain extends Application{
 		  @Override
 		  public void handle(WindowEvent event) {
 			  try {
-				reader.close();
-				writer.close();
-				ois.close();
-			} catch (IOException e) {
+				Thread.sleep(10);
+				socket.close();
+			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
 			}
+			  curr.close();
 			  System.exit(0);
 		  }
 	  });
@@ -98,6 +103,9 @@ public class ClientMain extends Application{
 	  VBox loginScreen = new VBox();
 	  loginScreen.setSpacing(15);
 	  loginScreen.setAlignment(Pos.CENTER);
+	  
+	  Image logo = new Image(getClass().getResourceAsStream("/pics/logo.png"), 100, 100, false, false);
+	  ImageView logoIV = new ImageView(logo);
 	  
 	  Label userText = new Label("Username:");
 	  TextField user = new TextField();
@@ -133,7 +141,7 @@ public class ClientMain extends Application{
 		  }
 	  });
 	  
-	  loginScreen.getChildren().addAll(userText, user, login, create);
+	  loginScreen.getChildren().addAll(logoIV, userText, user, login, create);
 	  Scene scene = new Scene(loginScreen, 400, 400);
 	  scene.setFill(Paint.valueOf(Color.AQUA.toString()));
 	  curr.setScene(scene);
@@ -144,6 +152,14 @@ public class ClientMain extends Application{
 	  curr.close();
 	  curr = new Stage();
 	  curr.setTitle("Auction Screen:" + userName);
+	  curr.setOnCloseRequest(new EventHandler<WindowEvent>() {
+		  @Override
+		  public void handle(WindowEvent event) {
+			  String name = userName;
+			  writer.println("LOGOUT " + name);
+			  writer.flush();
+		  }
+	  });
 	  //main pane
 	  BorderPane bp = new BorderPane();
 	  //tab pane for listings and history
@@ -156,12 +172,9 @@ public class ClientMain extends Application{
 	  ScrollPane sp = new ScrollPane();
 	  sp.setPadding(new Insets(10, 30, 10, 30));
 	  sp.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-	  BackgroundFill bf1 = new BackgroundFill(Color.SKYBLUE, CornerRadii.EMPTY, Insets.EMPTY);
-  	  Background back1 = new Background(bf1);
-  	  sp.setBackground(back1);
+	  
 	  VBox listing = new VBox();
 	  listing.setMaxWidth(sp.getMaxWidth());
-	  listing.setBackground(back1);
 	  listing.setAlignment(Pos.TOP_CENTER);
 	  listing.setSpacing(20);
 	  listing.setMaxWidth(900);
@@ -226,8 +239,10 @@ public class ClientMain extends Application{
 	  tb.getTabs().add(auc);
 	  tb.getTabs().add(hist);
 	  //Create Logout Button
-	  VBox exit = new VBox();
-	  exit.setAlignment(Pos.TOP_RIGHT);;
+	  HBox exit = new HBox();
+	  exit.setSpacing(10);
+	  exit.setAlignment(Pos.TOP_RIGHT);
+	  Label end = new Label("Auction Ends: " + endOfAuction);
 	  Button logout = new Button("Logout");
 	  logout.setOnAction(new EventHandler<ActionEvent>() {
 		  @Override
@@ -237,7 +252,7 @@ public class ClientMain extends Application{
 			  writer.flush();
 		  }
 	  });
-	  exit.getChildren().add(logout);
+	  exit.getChildren().addAll(end, logout);
 	  
 	  BackgroundFill bf = new BackgroundFill(Color.DARKKHAKI, CornerRadii.EMPTY, Insets.EMPTY);
   	  Background back = new Background(bf);
@@ -262,6 +277,8 @@ public class ClientMain extends Application{
 	  bp.setRight(sp_Hist);
 	  bp.setTop(logoIV);
 	  
+	  BackgroundFill bf1 = new BackgroundFill(Color.SKYBLUE, CornerRadii.EMPTY, Insets.EMPTY);
+  	  Background back1 = new Background(bf1);
 	  bp.setBackground(back1);
 	  
 	  Scene scene = new Scene(bp, 900, 1000);
@@ -292,6 +309,17 @@ public class ClientMain extends Application{
 	  Label pHist = new Label(personal);
 	  pHist.setFont(Font.font("Courier New", 24));
 	  pHistory.getChildren().add(0, pHist);
+  }
+  
+  public void bidWon(String product) {
+	  Stage win = new Stage();
+	  win.setTitle("BID WON!");
+	  VBox winner = new VBox();
+	  Label winMess = new Label("Congrats, You won the " + product + "!");
+	  winner.getChildren().add(winMess);
+	  Scene scene = new Scene(winner, 300, 150);
+	  win.setScene(scene);
+	  win.show();
   }
   
   public void alertPopUp(Integer error) {
@@ -329,14 +357,15 @@ public class ClientMain extends Application{
   }
 
   private void setUpNetworking() throws Exception {
-    @SuppressWarnings("resource")
-    Socket socket = new Socket(host, 4242);
+    //@SuppressWarnings("resource")
+    this.socket = new Socket(host, 4242);
     System.out.println("Connecting to... " + socket);
     reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     writer = new PrintWriter(socket.getOutputStream());
 
     InputStream is = socket.getInputStream();
     ois = new ObjectInputStream(is);
+    endOfAuction = reader.readLine();
     database = (ArrayList<Item>) ois.readObject();
     ArrayList<String> bidhistory =(ArrayList<String>) ois.readObject();
     for(String s: bidhistory) {
@@ -364,16 +393,6 @@ public class ClientMain extends Application{
 				  String[] todo = fromServer.split(" ");
 				  
 				  if(todo[0].equals("LOGIN")) {
-					  try {
-						  ArrayList<String> pers = (ArrayList<String>) ois.readObject();
-						  for(String s: pers) {
-							  userHistory.add(new Label(s));
-						  }
-						} catch (ClassNotFoundException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
 					  Platform.runLater(new Runnable() {
 						  @Override
 						  public void run() {
@@ -399,7 +418,9 @@ public class ClientMain extends Application{
 						  }
 					  });
 				  } else if(todo[0].equals("BID")) {
-					  String update = todo[2] + " BIDDED " + todo[3] + " for " + todo[1];
+					  DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+					  LocalDateTime now = LocalDateTime.now();
+					  String update = todo[2] + " BIDDED " + todo[3] + " for " + todo[1] + " -> " + dtf.format(now);
 					  String state = "Bid Value at: " + todo[3];
 					  Platform.runLater(new Runnable() {
 						  @Override
@@ -414,7 +435,9 @@ public class ClientMain extends Application{
 						  }
 					  });
 				  } else if(todo[0].equals("PURCHASE")) {
-					  String update = todo[1] + " WON by " + todo[2] + " for " + todo[3];
+					  DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+					  LocalDateTime now = LocalDateTime.now();
+					  String update = todo[1] + " WON by " + todo[2] + " for " + todo[3] + " -> " + dtf.format(now);
 					  Platform.runLater(new Runnable() {
 						  @Override
 						  public void run() {
@@ -424,6 +447,7 @@ public class ClientMain extends Application{
 							  updateHistory(update);
 							  if(todo[2].equals(userName)) {
 								  updatePHist(update);
+								  bidWon(todo[1]);
 							  }
 						  }
 					  });

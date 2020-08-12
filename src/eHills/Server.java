@@ -5,28 +5,35 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import javafx.scene.control.Label;
-
+@SuppressWarnings("serial")
 class Server extends Observable implements Serializable {
 	
 	private static List<String> currUsers;
 	private static Map<String, ArrayList<String>> users;
 	private static List<String> bidHist;
 	private static List<Item> auctionList;
+	private ServerSocket serverSock;
 
   public static void main(String[] args) {
     new Server().runServer();
@@ -70,14 +77,24 @@ class Server extends Observable implements Serializable {
   }
 
   private void setUpNetworking() throws Exception {
-    @SuppressWarnings("resource")
-    ServerSocket serverSock = new ServerSocket(4242);
+    //@SuppressWarnings("resource")
+    this.serverSock = new ServerSocket(4242);
+    Timer timer = new Timer();
+    SimpleDateFormat dtf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    Calendar cal = Calendar.getInstance();
+    cal.add(Calendar.MINUTE, 5);
+    String endTime = dtf.format(cal.getTime());
+    timer.schedule(new AuctionEnd(this), 300000);
+    
     while (true) {
       Socket clientSocket = serverSock.accept();
       System.out.println("Connecting to... " + clientSocket);
-
+ 
       OutputStream os = clientSocket.getOutputStream();
+      PrintWriter pw = new PrintWriter(os);
       ObjectOutputStream oos = new ObjectOutputStream(os);
+      pw.println(endTime);
+      pw.flush();
       oos.writeObject(auctionList);
       oos.flush();
       oos.writeObject(bidHist);
@@ -123,12 +140,16 @@ class Server extends Observable implements Serializable {
 				if(auctionList.get(index).validBid(bid, input[2])) {
 					if(!auctionList.get(index).open) {
 						output = "PURCHASE " + input[1] + " " + input[2] + " " + input[3];
-						String update = input[1] + " WON by " + input[2] + " for " + input[3];
+						DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+						LocalDateTime now = LocalDateTime.now();
+						String update = input[1] + " WON by " + input[2] + " for " + input[3] + " " + dtf.format(now);
 						users.get(input[2]).add(update);
 						bidHist.add(update);
 					} else {
 						output = "BID " + input[1] + " " + input[2] + " " + input[3];
-						String update = input[2] + " BIDDED " + input[3] + " for " + input[1];
+						DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+						LocalDateTime now = LocalDateTime.now();
+						String update = input[2] + " BIDDED " + input[3] + " for " + input[1] + " " + dtf.format(now);
 						users.get(input[2]).add(update);
 						bidHist.add(update);
 					}
@@ -154,6 +175,11 @@ class Server extends Observable implements Serializable {
 	return "";
   }
   
+  protected void endAuction() {
+	  this.setChanged();
+	  this.notifyObservers("LOGOUT");
+  }
+  
   protected ArrayList<String> getUserHist(String user) {
 	  return users.get(user);
   }
@@ -167,5 +193,22 @@ class Server extends Observable implements Serializable {
 	  
 	  return 0;
   }
+  
+  class AuctionEnd extends TimerTask {
+	  Server serve;
+	  
+	  AuctionEnd(Server serve) {
+		  this.serve  = serve;
+	  }
+	  
+	  public void run() {
+		  this.serve.endAuction();
+		  try {
+			this.serve.serverSock.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	  }
+}
   
 }
