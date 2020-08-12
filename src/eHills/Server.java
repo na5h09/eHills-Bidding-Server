@@ -19,10 +19,12 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import javafx.scene.control.Label;
+
 class Server extends Observable implements Serializable {
 	
 	private static List<String> currUsers;
-	private static List<String> users;
+	private static Map<String, ArrayList<String>> users;
 	private static List<String> bidHist;
 	private static List<Item> auctionList;
 
@@ -32,7 +34,7 @@ class Server extends Observable implements Serializable {
 
   private Server() {
 	  currUsers = new ArrayList<String>();
-	  users = new ArrayList<String>();
+	  users = new HashMap<String, ArrayList<String>>();
 	  bidHist = new ArrayList<String>();
 	  auctionList = new ArrayList<Item>();
 	  
@@ -73,13 +75,15 @@ class Server extends Observable implements Serializable {
       Socket clientSocket = serverSock.accept();
       System.out.println("Connecting to... " + clientSocket);
 
-      ClientHandler handler = new ClientHandler(this, clientSocket);
-      this.addObserver(handler);
-      
       OutputStream os = clientSocket.getOutputStream();
       ObjectOutputStream oos = new ObjectOutputStream(os);
       oos.writeObject(auctionList);
+      oos.flush();
       oos.writeObject(bidHist);
+      oos.flush();
+      
+      ClientHandler handler = new ClientHandler(this, clientSocket, oos);
+      this.addObserver(handler);
       
 //      oos.close();
 //      os.close();
@@ -93,8 +97,8 @@ class Server extends Observable implements Serializable {
     String output = "ERROR";
 	try {
 		if(input[0].equals("CREATE")) {
-			if(!users.contains(input[1])) {
-				users.add(input[1]);
+			if(!users.containsKey(input[1])) {
+				users.put(input[1], new ArrayList<String>());
 				currUsers.add(input[1]);
 				output = "LOGIN";
 			} else {
@@ -103,7 +107,7 @@ class Server extends Observable implements Serializable {
 			
 			return output;
 		} else if(input[0].equals("LOGIN")) {
-			if(users.contains(input[1]) && !currUsers.contains(input[1])) {
+			if(users.containsKey(input[1]) && !currUsers.contains(input[1])) {
 				currUsers.add(input[1]);
 				output = "LOGIN";
 			} else {
@@ -118,9 +122,13 @@ class Server extends Observable implements Serializable {
 				if(auctionList.get(index).validBid(bid, input[2])) {
 					if(!auctionList.get(index).open) {
 						output = "PURCHASE " + input[1] + " " + input[2] + " " + input[3];
+						String update = input[1] + " WON by " + input[2] + " for " + input[3];
+						users.get(input[2]).add(update);
 						bidHist.add(input[1] + " WON by " + input[2] + " for " + input[3]);
 					} else {
 						output = "BID " + input[1] + " " + input[2] + " " + input[3];
+						String update = input[2] + " BIDDED " + input[3] + " for " + input[1];
+						users.get(input[2]).add(update);
 						bidHist.add(input[2] + " BIDDED " + input[3] + " for " + input[1]);
 					}
 				} else {
@@ -143,6 +151,10 @@ class Server extends Observable implements Serializable {
     }
 	
 	return "";
+  }
+  
+  protected ArrayList<String> getUserHist(String user) {
+	  return users.get(user);
   }
   
   private Integer productIndex(String name) {

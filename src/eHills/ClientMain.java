@@ -46,6 +46,9 @@ public class ClientMain extends Application{
   private Stage curr = null;
   private VBox history = new VBox();
   private ArrayList<Item> database;
+  private ObjectInputStream ois;
+  private ArrayList<Label> userHistory = new ArrayList<Label>();
+  private VBox pHistory = new VBox();
   private Map<String, Label> itemState = new HashMap<String, Label>();
 
   public static void main(String[] args) {
@@ -150,7 +153,12 @@ public class ClientMain extends Application{
 		  g.setHgap(10);
 		  Label name  = new Label(i.product);
 		  GridPane.setConstraints(name, 0, 0);
-		  Label currPrice  = new Label("Bid Value at: " + i.highestBid);
+		  Label currPrice;
+		  if(!i.open) {
+			  currPrice  = new Label("Bid Closed");
+		  } else {
+			  currPrice  = new Label("Bid Value at: " + i.highestBid);
+		  }
 		  itemState.put(i.product, currPrice);
 		  GridPane.setConstraints(currPrice, 1, 0);
 		  TextField value = new TextField();
@@ -181,7 +189,10 @@ public class ClientMain extends Application{
 	  auc.setContent(sp);
 	  //Create History Tab
 	  Tab hist = new Tab("Personal History");
-	  //hist.setContent();
+	  if(userHistory != null) {
+		  pHistory.getChildren().addAll(userHistory);
+	  }
+	  hist.setContent(pHistory);
 	  
 	  tb.getTabs().add(auc);
 	  tb.getTabs().add(hist);
@@ -227,6 +238,11 @@ public class ClientMain extends Application{
 	  history.getChildren().add(0, recent);
   }
   
+  private void updatePHist(String personal) {
+	  Label pHist = new Label(personal);
+	  pHistory.getChildren().add(0, pHist);
+  }
+  
   public void alertPopUp(Integer error) {
 	  Stage alert = new Stage();
 	  alert.setTitle("Error");
@@ -256,7 +272,7 @@ public class ClientMain extends Application{
 	  
 	  alertMessage.getChildren().add(mess);
 	  
-	  Scene scene = new Scene(alertMessage, 150, 80);
+	  Scene scene = new Scene(alertMessage, 300, 150);
 	  alert.setScene(scene);
 	  alert.show();
   }
@@ -269,7 +285,7 @@ public class ClientMain extends Application{
     writer = new PrintWriter(socket.getOutputStream());
 
     InputStream is = socket.getInputStream();
-    ObjectInputStream ois = new ObjectInputStream(is);
+    ois = new ObjectInputStream(is);
     database = (ArrayList<Item>) ois.readObject();
     ArrayList<String> bidhistory =(ArrayList<String>) ois.readObject();
     for(String s: bidhistory) {
@@ -307,6 +323,16 @@ public class ClientMain extends Application{
 				  String[] todo = fromServer.split(" ");
 				  
 				  if(todo[0].equals("LOGIN")) {
+					  try {
+							ArrayList<String> pers = (ArrayList<String>) ois.readObject();
+							for(String s: pers) {
+								userHistory.add(new Label(s));
+							}
+						} catch (ClassNotFoundException e) {
+							e.printStackTrace();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					  Platform.runLater(new Runnable() {
 						  @Override
 						  public void run() {
@@ -339,6 +365,9 @@ public class ClientMain extends Application{
 							  updateItem(todo[1], todo[2], val);
 							  updateItemState(todo[1], state);
 							  updateHistory(update);
+							  if(todo[2].equals(userName)) {
+								  updatePHist(update);
+							  }
 						  }
 					  });
 				  } else if(todo[0].equals("PURCHASE")) {
@@ -350,6 +379,9 @@ public class ClientMain extends Application{
 							  updateItem(todo[1], todo[2], val);
 							  updateItemState(todo[1], "Bid Closed");
 							  updateHistory(update);
+							  if(todo[2].equals(userName)) {
+								  updatePHist(update);
+							  }
 						  }
 					  });
 				  }
