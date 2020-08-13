@@ -102,10 +102,9 @@ class Server extends Observable implements Serializable {
       System.out.println("Connecting to... " + clientSocket);
  
       OutputStream os = clientSocket.getOutputStream();
-      PrintWriter pw = new PrintWriter(os);
       ObjectOutputStream oos = new ObjectOutputStream(os);
-      pw.println(endTime);
-      pw.flush();
+      oos.writeObject(endTime);
+      oos.flush();
       oos.writeObject(auctionList);
       oos.flush();
       oos.writeObject(bidHist);

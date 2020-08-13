@@ -386,7 +386,7 @@ public class ClientMain extends Application{
 
     InputStream is = socket.getInputStream();
     ois = new ObjectInputStream(is);
-    endOfAuction = reader.readLine();
+    endOfAuction = (String) ois.readObject();
     database = (ArrayList<Item>) ois.readObject();
     ArrayList<String> bidhistory =(ArrayList<String>) ois.readObject();
     for(String s: bidhistory) {
