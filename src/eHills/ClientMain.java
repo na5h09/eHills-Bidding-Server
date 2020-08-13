@@ -1,5 +1,15 @@
 package eHills;
 
+/*
+ * eHills ClientMain.java
+ * EE422C Final Project submission by
+ * Replace <...> with your actual data.
+ * <Pranesh Satish>
+ * <ps32534>
+ * <Student1 5-digit Unique No.>
+ * Spring 2020
+ */
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +19,7 @@ import java.util.Scanner;
 import javax.imageio.ImageIO;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -44,6 +55,8 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
@@ -160,6 +173,12 @@ public class ClientMain extends Application{
 			  writer.flush();
 		  }
 	  });
+	  
+	  String musicFile = "ChaChing.mp3";     // For example
+
+	  Media sound = new Media(new File(musicFile).toURI().toString());
+	  MediaPlayer mediaPlayer = new MediaPlayer(sound);
+	  
 	  //main pane
 	  BorderPane bp = new BorderPane();
 	  //tab pane for listings and history
@@ -206,6 +225,8 @@ public class ClientMain extends Application{
 		  bid.setOnAction(new EventHandler<ActionEvent>() {
 			  @Override
 			  public void handle(ActionEvent event) {
+				  mediaPlayer.stop();
+				  mediaPlayer.play();
 				  String input = value.getText();
 				  if(!input.equals("")) {
 					  Double num = Double.parseDouble(input);
@@ -371,9 +392,6 @@ public class ClientMain extends Application{
     for(String s: bidhistory) {
     	updateHistory(s);
     }
-    
-//    ois.close();
-//    is.close();
     
     Thread aThread = new Thread(new Auctioner());
 

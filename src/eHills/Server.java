@@ -1,5 +1,15 @@
 package eHills;
 
+/*
+ * eHills Server.java
+ * EE422C Final Project submission by
+ * Replace <...> with your actual data.
+ * <Pranesh Satish>
+ * <ps32534>
+ * <Student1 5-digit Unique No.>
+ * Spring 2020
+ */
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -34,6 +44,7 @@ class Server extends Observable implements Serializable {
 	private static List<String> bidHist;
 	private static List<Item> auctionList;
 	private ServerSocket serverSock;
+	private Timer timer;
 
   public static void main(String[] args) {
     new Server().runServer();
@@ -79,7 +90,7 @@ class Server extends Observable implements Serializable {
   private void setUpNetworking() throws Exception {
     //@SuppressWarnings("resource")
     this.serverSock = new ServerSocket(4242);
-    Timer timer = new Timer();
+    timer = new Timer();
     SimpleDateFormat dtf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     Calendar cal = Calendar.getInstance();
     cal.add(Calendar.MINUTE, 5);
@@ -100,18 +111,15 @@ class Server extends Observable implements Serializable {
       oos.writeObject(bidHist);
       oos.flush();
       
-      ClientHandler handler = new ClientHandler(this, clientSocket, oos);
+      ClientHandler handler = new ClientHandler(this, clientSocket);
       this.addObserver(handler);
-      
-//      oos.close();
-//      os.close();
 
       Thread t = new Thread(handler);
       t.start();
     }
   }
 
-  protected String processRequest(String[] input) {
+  protected synchronized String processRequest(String[] input) {
     String output = "ERROR";
 	try {
 		if(input[0].equals("CREATE")) {
@@ -168,11 +176,27 @@ class Server extends Observable implements Serializable {
 		}
 		this.setChanged();
 		this.notifyObservers(output);
+		Thread.sleep(500);
+		if(allItemsClosed()) {
+			timer.cancel();
+			endAuction();
+			serverSock.close();
+		}
     } catch (Exception e) {
     	e.printStackTrace();
     }
 	
 	return "";
+  }
+  
+  protected Boolean allItemsClosed() {
+	  for(Item i: auctionList) {
+		  if(i.open) {
+			  return false;
+		  }
+	  }
+	  
+	  return true;
   }
   
   protected void endAuction() {

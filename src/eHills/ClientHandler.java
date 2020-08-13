@@ -1,5 +1,15 @@
 package eHills;
 
+/*
+ * eHills ClientHandler.java
+ * EE422C Final Project submission by
+ * Replace <...> with your actual data.
+ * <Pranesh Satish>
+ * <ps32534>
+ * <Student1 5-digit Unique No.>
+ * Spring 2020
+ */
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
@@ -15,12 +25,10 @@ class ClientHandler implements Runnable, Observer {
   private Socket clientSocket;
   private BufferedReader fromClient;
   private PrintWriter toClient;
-  private ObjectOutputStream oos;
 
-  protected ClientHandler(Server server, Socket clientSocket, ObjectOutputStream oos) {
+  protected ClientHandler(Server server, Socket clientSocket) {
     this.server = server;
     this.clientSocket = clientSocket;
-    this.oos = oos;
     try {
       fromClient = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
       toClient = new PrintWriter(this.clientSocket.getOutputStream());
@@ -33,16 +41,6 @@ class ClientHandler implements Runnable, Observer {
     System.out.println("Sending to client: " + string);
     toClient.println(string);
     toClient.flush();
-  }
-  
-  protected void sendObject(Object o) {
-	  System.out.println("Sending Object");
-	  try {
-		oos.writeObject(o);
-		oos.flush();
-	} catch (IOException e) {
-		e.printStackTrace();
-	}
   }
 
   @Override
@@ -58,14 +56,6 @@ class ClientHandler implements Runnable, Observer {
 
         if(!response.equals("")) {
         	this.sendToClient(response);
-        	//try {
-				//Thread.sleep(500);
-				if(response.equals("LOGIN")) {
-	        		this.sendObject(this.server.getUserHist(in[1]));
-	        	} 
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}       	
         }
       }
     } catch (IOException e) {
